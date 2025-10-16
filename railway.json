@@ -1,0 +1,24 @@
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "nixpacksPlan": {
+      "phases": {
+        "setup": {
+          "nixPkgs": ["php83", "php83Extensions.curl", "php83Extensions.mbstring", "php83Extensions.fileinfo", "composer"]
+        },
+        "install": {
+          "cmds": ["composer install --no-interaction --prefer-dist --optimize-autoloader"]
+        },
+        "start": {
+          "cmd": "php artisan serve --host=0.0.0.0 --port=$PORT"
+        }
+      }
+    }
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "startCommand": "php artisan serve --host=0.0.0.0 --port=$PORT",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
