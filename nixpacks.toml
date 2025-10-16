@@ -1,31 +1,30 @@
-# nixpacks.toml — Railway Laravel Student + GPT Solver
+#!/bin/bash
+set -e
 
-[build]
-# ✅ 指定 runtime 依赖，强制 PHP 存在于运行镜像中
-nixPkgs = [
-  "php83",
-  "php83Packages.composer",
-  "php83Extensions.curl",
-  "php83Extensions.mbstring",
-  "php83Extensions.fileinfo",
-  "bash"
-]
+echo "🚀 Starting Laravel initialization..."
 
-[phases.setup]
-# 构建阶段所需
-nixPkgs = [
-  "php83",
-  "php83Packages.composer",
-  "php83Extensions.curl",
-  "php83Extensions.mbstring",
-  "php83Extensions.fileinfo",
-  "bash"
-]
+# 兜底：若未在 nix-shell 环境中，尝试再进入一次（一般用不到）
+if ! command -v php >/dev/null 2>&1; then
+  echo "ℹ️ php not found in PATH, entering nix-shell..."
+  exec nix-shell -p php83 php83Extensions.curl php83Extensions.mbstring php83Extensions.fileinfo bash --run "bash init.sh"
+fi
 
-[phases.install]
-cmds = [
-  "composer install --no-interaction --prefer-dist --optimize-autoloader"
-]
+# Ensure .env exists
+if [ ! -f .env ]; then
+  echo "⚙️  .env not found, creating from example..."
+  cp .env.example .env || true
+fi
 
-[phases.start]
-cmd = "bash init.sh"
+# Ensure APP_KEY exists
+if ! grep -q "^APP_KEY=" .env || grep -q "^APP_KEY=$" .env; then
+  echo "🔑 Generating Laravel APP_KEY..."
+  php artisan key:generate --force
+else
+  echo "✅ APP_KEY already set."
+fi
+
+php artisan config:cache || true
+php artisan route:cache || true
+
+echo "🌐 Launching Laravel server..."
+exec php artisan serve --host=0.0.0.0 --port=$PORT
