@@ -1,6 +1,18 @@
-# nixpacks.toml — Railway build config for Laravel (student-only GPT solver)
+# nixpacks.toml — Railway Laravel Student + GPT Solver
+
+[build]
+# ✅ 指定 runtime 依赖，强制 PHP 存在于运行镜像中
+nixPkgs = [
+  "php83",
+  "php83Packages.composer",
+  "php83Extensions.curl",
+  "php83Extensions.mbstring",
+  "php83Extensions.fileinfo",
+  "bash"
+]
 
 [phases.setup]
+# 构建阶段所需
 nixPkgs = [
   "php83",
   "php83Packages.composer",
@@ -16,11 +28,4 @@ cmds = [
 ]
 
 [phases.start]
-nixPkgs = [
-  "php83",
-  "php83Extensions.curl",
-  "php83Extensions.mbstring",
-  "php83Extensions.fileinfo",
-  "bash"
-]
 cmd = "bash init.sh"
