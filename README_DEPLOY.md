@@ -1,35 +1,19 @@
-# 🚀 Railway Final Add-on (Nixpacks) — Laravel AI Quiz Solver (Student Only)
+# 📦 Student-only + Dockerfile (Railway Ready)
 
-Use this package to deploy your **student-only** Laravel AI quiz solver (photo → GPT answer) on Railway using **nixpacks.toml**.
+This ZIP overlays a Laravel project to provide a student-only photo-to-answer app using OpenAI vision, with a Dockerfile for Railway deployment.
 
-## What's inside
-- `nixpacks.toml` — Nixpacks config (PHP 8.3 + Composer at build & runtime)
-- `init.sh` — auto-generate `APP_KEY` and start server
-- `README_DEPLOY.md` — how to use
+## What's included
+- `app/Http/Controllers/SolveController.php`
+- `routes/web.php`
+- `resources/views/solve.blade.php`
+- `public/css/quiz.css`
+- `.env.example` (no secrets)
+- `Dockerfile`
+- `.dockerignore`
 
-## How to use
-1. Copy these files into your Laravel project root (same folder as `artisan`).
-2. Commit & push:
-   ```bash
-   git add nixpacks.toml init.sh
-   git commit -m "add nixpacks runtime php and init script"
-   git push
-   ```
-3. Railway → Deployments → Redeploy.
-4. Add Variables:
-   - `APP_ENV=production`
-   - `APP_DEBUG=false`
-   - `OPENAI_API_KEY=sk-...`
-   - `OPENAI_MODEL=gpt-4o-mini`
-   - `OPENAI_BASE_URL=https://api.openai.com/v1`
-   - `MOCK=false`
-
-## Expected logs
-```
-installing 'php83Packages.composer'
-composer install --no-interaction --prefer-dist --optimize-autoloader
-🔑 Generating Laravel APP_KEY...
-Application key set successfully.
-🌐 Launching Laravel server...
-Laravel development server started: http://0.0.0.0:PORT
-```
+## How to deploy on Railway
+1. Put these files at your Laravel project root (same folder as `artisan`).
+2. Commit & push to GitHub.
+3. In Railway: New Project → Deploy from GitHub.
+4. Set Variables: `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-4o-mini`, `OPENAI_BASE_URL=https://api.openai.com/v1`, `APP_ENV=production`, `APP_DEBUG=false`, `MOCK=false`.
+5. Wait for build, open the public URL. Upload a question image and get instant solution (no storage).

@@ -16,15 +16,13 @@ class SolveController extends Controller
     public function solve(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|max:10240' // 10MB
+            'image' => 'required|image|max:10240'
         ]);
 
-        // Read image as base64 (no persistence)
         $image = $request->file('image');
         $mime  = $image->getMimeType() ?: 'image/png';
         $dataUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($image->getRealPath()));
 
-        // Mock mode (optional)
         if (env('MOCK', false)) {
             return response()->json([
                 'ok' => true,
@@ -48,7 +46,7 @@ class SolveController extends Controller
         if (!$apiKey) {
             return response()->json([
                 'ok' => false,
-                'error' => 'OPENAI_API_KEY is missing. Set it in .env or enable MOCK=1.'
+                'error' => 'OPENAI_API_KEY is missing. Set it in Railway Variables or enable MOCK=1.'
             ], 500);
         }
 
@@ -89,7 +87,6 @@ SYS;
             $json = $resp->json();
             $content = $json['choices'][0]['message']['content'] ?? '{}';
 
-            // Ensure JSON
             $parsed = json_decode($content, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $parsed = [
