@@ -4,10 +4,19 @@
     "nixpacksPlan": {
       "phases": {
         "setup": {
-          "nixPkgs": ["php83", "php83Extensions.curl", "php83Extensions.mbstring", "php83Extensions.fileinfo", "composer", "bash"]
+          "nixPkgs": [
+            "php83",
+            "php83Packages.composer",
+            "php83Extensions.curl",
+            "php83Extensions.mbstring",
+            "php83Extensions.fileinfo",
+            "bash"
+          ]
         },
         "install": {
-          "cmds": ["composer install --no-interaction --prefer-dist --optimize-autoloader"]
+          "cmds": [
+            "composer install --no-interaction --prefer-dist --optimize-autoloader"
+          ]
         },
         "start": {
           "cmd": "bash init.sh"
