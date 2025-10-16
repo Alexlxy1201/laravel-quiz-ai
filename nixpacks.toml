@@ -1,6 +1,7 @@
 # nixpacks.toml
+
 [phases.setup]
-# 指定需要的 Nix 包
+# 安装 PHP 8.3 和 Composer 及扩展
 nixPkgs = [
   "php83",
   "php83Packages.composer",
@@ -11,11 +12,18 @@ nixPkgs = [
 ]
 
 [phases.install]
-# 安装 Laravel 依赖
 cmds = [
   "composer install --no-interaction --prefer-dist --optimize-autoloader"
 ]
 
 [phases.start]
-# 启动 Laravel 服务
-cmd = "php artisan serve --host=0.0.0.0 --port=$PORT"
+# 明确加载 PHP 到 PATH 环境
+nixPkgs = [
+  "php83",
+  "php83Extensions.curl",
+  "php83Extensions.mbstring",
+  "php83Extensions.fileinfo",
+  "bash"
+]
+
+cmd = "bash init.sh"
