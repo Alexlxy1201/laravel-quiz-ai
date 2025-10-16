@@ -47,5 +47,5 @@ This is a **drop-in feature pack** for a Laravel 10/11 project.
 ## ✅ Endpoints
 - `GET /` → Student page (upload & solve)
 - `POST /api/solve` → Vision call, returns JSON
-
+.
 MIT License
