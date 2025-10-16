@@ -1,0 +1,21 @@
+# nixpacks.toml
+[phases.setup]
+# 指定需要的 Nix 包
+nixPkgs = [
+  "php83",
+  "php83Packages.composer",
+  "php83Extensions.curl",
+  "php83Extensions.mbstring",
+  "php83Extensions.fileinfo",
+  "bash"
+]
+
+[phases.install]
+# 安装 Laravel 依赖
+cmds = [
+  "composer install --no-interaction --prefer-dist --optimize-autoloader"
+]
+
+[phases.start]
+# 启动 Laravel 服务
+cmd = "php artisan serve --host=0.0.0.0 --port=$PORT"
