@@ -46,6 +46,8 @@ CMD php artisan config:cache && \
     php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
 ```
 
+
+
 ### 3. 创建 `.dockerignore`
 ```
 .git
