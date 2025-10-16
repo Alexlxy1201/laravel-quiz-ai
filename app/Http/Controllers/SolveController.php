@@ -16,7 +16,7 @@ class SolveController extends Controller
     public function solve(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|max:10240'
+            'image' => 'required|image|max:10240' // 10MB
         ]);
 
         $image = $request->file('image');
@@ -55,8 +55,8 @@ You are a precise question-solving tutor. Given a photo of a question (math/scie
 1) Extract and rewrite the question text clearly as "question".
 2) Solve it and provide a concise "answer".
 3) Provide 3–7 step-by-step "reasoning" as an array of strings.
-4) List 3–6 "knowledge_points" (key concepts tested).
-Return a valid JSON object with keys: question, answer, reasoning, knowledge_points.
+4) List 3–6 "knowledge_points".
+Return a JSON object: question, answer, reasoning, knowledge_points.
 SYS;
 
         try {
