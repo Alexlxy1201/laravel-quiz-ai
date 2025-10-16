@@ -1,32 +1,34 @@
-# 🚀 Railway Deployment Guide – Laravel AI Quiz Solver
+# 🚀 Railway Auto-Init Deployment – Laravel AI Quiz Solver
 
-This folder contains everything needed to deploy the **AI Quiz Solver** Laravel app to **Railway.app**.
-
----
-
-## 1️⃣ Prerequisites
-- You already have a GitHub repository (e.g., `laravel-quiz-ai`).
-- You have tested locally using:
-  ```bash
-  php artisan serve
-  ```
+This package automatically sets up Laravel on Railway **without manually adding APP_KEY**.
 
 ---
 
-## 2️⃣ Deploy to Railway
-1. Go to [https://railway.app](https://railway.app) and sign in with GitHub.
-2. Click **New Project → Deploy from GitHub repo**.
-3. Choose your Laravel repo.
-4. Wait until Railway builds automatically (it will detect PHP via `composer.json`).
+## 🧩 What it does
+- Ensures `.env` exists (copies from `.env.example` if missing)
+- Generates `APP_KEY` automatically using `php artisan key:generate`
+- Starts Laravel server on the Railway port (`php artisan serve --host=0.0.0.0 --port=$PORT`)
 
 ---
 
-## 3️⃣ Set Environment Variables
-In Railway’s “Variables” tab, add:
+## 📦 Files
+| File | Purpose |
+|------|----------|
+| `init.sh` | Startup script that initializes and launches Laravel |
+| `Procfile` | Tells Railway to run the shell script instead of PHP directly |
+| `railway.json` | Defines PHP environment and build steps |
+
+---
+
+## 🧭 Usage
+1. Place these files in the root of your Laravel project (same folder as `artisan`).
+2. Commit and push to GitHub.
+3. Deploy on Railway:
+   - **New Project → Deploy from GitHub repo**
+4. Add environment variables in Railway **(no need for APP_KEY)**:
 
 | Key | Example Value |
 |-----|----------------|
-| `APP_KEY` | output of `php artisan key:generate --show` |
 | `APP_ENV` | production |
 | `APP_DEBUG` | false |
 | `OPENAI_API_KEY` | sk-xxxxxx |
@@ -36,30 +38,11 @@ In Railway’s “Variables” tab, add:
 
 ---
 
-## 4️⃣ Launch
-After deployment finishes, click **“View Deployment”**.
-
-Your Laravel app will be live at:
+## ✅ Done
+Once Railway builds successfully, visit:
 
 ```
-https://<your-app-name>.up.railway.app
+https://<your-app>.up.railway.app
 ```
 
----
-
-## 5️⃣ Notes
-- `Procfile` tells Railway how to start Laravel using the internal PHP server.
-- `railway.json` defines build and run steps (composer install, serve).
-- No database is needed — this is a stateless student-side app.
-
-If you need to re-deploy after edits:
-```bash
-git add .
-git commit -m "update"
-git push
-```
-
-Railway will rebuild automatically.
-
----
-✨ Done! Your AI Quiz Solver is now online.
+Laravel will auto-init APP_KEY and start your AI Quiz Solver.
