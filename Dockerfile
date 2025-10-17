@@ -32,8 +32,18 @@ WORKDIR /app
 # Copy the built Laravel app from builder
 COPY --from=builder /app /app
 
-# Ensure .env exists (from Laravel's .env.example)
+# Ensure .env exists
 RUN cp -n .env.example .env || true
+
+# ✅ Inject Railway-provided environment variables into .env
+# 这一步是关键修复点，让 Laravel 能读取 OPENAI_API_KEY、APP_URL 等
+RUN echo "\n# --- Railway environment ---" >> .env && \
+    echo "APP_ENV=production" >> .env && \
+    echo "APP_URL=${APP_URL}" >> .env && \
+    echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env && \
+    echo "OPENAI_MODEL=${OPENAI_MODEL}" >> .env && \
+    echo "OPENAI_BASE_URL=${OPENAI_BASE_URL}" >> .env && \
+    echo "MOCK=${MOCK}" >> .env
 
 # Generate APP_KEY if missing
 RUN php -r "if (!preg_match('/^APP_KEY=.+/m', file_get_contents('.env'))) { passthru('php artisan key:generate --force'); }"
@@ -43,6 +53,7 @@ RUN chmod -R 775 storage bootstrap/cache || true
 
 EXPOSE 8080
 
+# Clear cache and start Laravel
 CMD php artisan config:clear && \
     php artisan route:clear && \
     php artisan cache:clear && \
