@@ -15,3 +15,11 @@ Route::get('/ping', function () {
 Route::post('/api/solve', [SolveController::class, 'solve'])
     ->name('solve.api')
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
+Route::get('/envcheck', function () {
+    return response()->json([
+        'key_exists' => env('OPENAI_API_KEY') ? true : false,
+        'key_preview' => substr(env('OPENAI_API_KEY'), 0, 8)
+    ]);
+});
+    
