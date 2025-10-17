@@ -74,7 +74,7 @@
     fd.append('image', file);
 
     try {
-      const resp = await fetch('{{ route('solve.api') }}', {
+      const resp = await fetch('/api/solve', {
         method: 'POST',
         headers: { 'X-CSRF-TOKEN': token },
         body: fd
