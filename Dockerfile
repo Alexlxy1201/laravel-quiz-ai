@@ -52,7 +52,7 @@ CMD bash -c '\
   echo "APP_URL=${APP_URL:-http://localhost:8080}" >> .env && \
   echo "LOG_CHANNEL=stderr" >> .env && \
   echo "LOG_LEVEL=info" >> .env && \
-  echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env && \
+  echo "OPENAI_API_KEY=${OPENAI_API_KEY:-}" >> .env && \
   echo "OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}" >> .env && \
   echo "OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}" >> .env && \
   echo "MOCK=${MOCK:-false}" >> .env && \
@@ -62,17 +62,15 @@ CMD bash -c '\
   echo "SESSION_DRIVER=file" >> .env && \
   echo "QUEUE_CONNECTION=sync" >> .env && \
   if [ -z "${APP_KEY}" ]; then \
-    echo "Generating APP_KEY..." && \
-    php artisan key:generate --force && \
-    echo "APP_KEY generated successfully"; \
+    php artisan key:generate --force; \
   else \
-    echo "APP_KEY=${APP_KEY}" >> .env && \
-    echo "APP_KEY set from environment"; \
+    echo "APP_KEY=${APP_KEY}" >> .env; \
   fi && \
+  echo "=== Environment Variables ===" && \
   cat .env && \
+  echo "===========================" && \
   php artisan config:clear && \
   php artisan cache:clear && \
-  php artisan config:cache && \
-  php artisan route:cache && \
-  php artisan view:cache && \
+  php artisan route:clear && \
+  php artisan view:clear && \
   php artisan serve --host=0.0.0.0 --port=${PORT:-8080}'
