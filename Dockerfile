@@ -53,7 +53,7 @@ CMD bash -c '\
   echo "LOG_CHANNEL=stderr" >> .env && \
   echo "LOG_LEVEL=info" >> .env && \
   echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env && \
-  echo "OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}" >> .env && \
+  echo "OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}" >> .env && \
   echo "OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}" >> .env && \
   echo "MOCK=${MOCK:-false}" >> .env && \
   echo "DB_CONNECTION=${DB_CONNECTION:-sqlite}" >> .env && \
@@ -69,6 +69,9 @@ CMD bash -c '\
     echo "APP_KEY=${APP_KEY}" >> .env && \
     echo "APP_KEY set from environment"; \
   fi && \
+  cat .env && \
+  php artisan config:clear && \
+  php artisan cache:clear && \
   php artisan config:cache && \
   php artisan route:cache && \
   php artisan view:cache && \
