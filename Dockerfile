@@ -49,7 +49,6 @@ CMD bash -c '\
   cp .env.example .env && \
   echo "APP_ENV=production" >> .env && \
   echo "APP_DEBUG=false" >> .env && \
-  echo "APP_KEY=${APP_KEY}" >> .env && \
   echo "APP_URL=${APP_URL:-http://localhost:8080}" >> .env && \
   echo "LOG_CHANNEL=stderr" >> .env && \
   echo "LOG_LEVEL=info" >> .env && \
@@ -62,6 +61,14 @@ CMD bash -c '\
   echo "CACHE_DRIVER=file" >> .env && \
   echo "SESSION_DRIVER=file" >> .env && \
   echo "QUEUE_CONNECTION=sync" >> .env && \
+  if [ -z "${APP_KEY}" ]; then \
+    echo "Generating APP_KEY..." && \
+    php artisan key:generate --force && \
+    echo "APP_KEY generated successfully"; \
+  else \
+    echo "APP_KEY=${APP_KEY}" >> .env && \
+    echo "APP_KEY set from environment"; \
+  fi && \
   php artisan config:cache && \
   php artisan route:cache && \
   php artisan view:cache && \
