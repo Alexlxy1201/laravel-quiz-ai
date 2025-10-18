@@ -31,12 +31,11 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ 生成 data URL（带前缀）
+        // ✅ 转成纯 base64
         if ($base64 && str_starts_with($base64, 'data:image/')) {
-            $imageUrl = $base64;
+            $imageBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $base64);
         } elseif ($imageFile) {
-            $mime = $imageFile->getMimeType() ?: 'image/png';
-            $imageUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imageFile->getRealPath()));
+            $imageBase64 = base64_encode(file_get_contents($imageFile->getRealPath()));
         } else {
             return response()->json([
                 'ok' => false,
@@ -85,7 +84,7 @@ SYS;
         try {
             $start = microtime(true);
 
-            // ✅ 新版请求体（image_url + text.format）
+            // ✅ 最新正确 payload：input_image + image_data（base64）
             $payload = [
                 'model' => $model,
                 'input' => [
@@ -97,7 +96,7 @@ SYS;
                         'role' => 'user',
                         'content' => [
                             ['type' => 'input_text', 'text' => 'Solve this question and return JSON.'],
-                            ['type' => 'input_image_url', 'image_url' => ['url' => $imageUrl]]
+                            ['type' => 'input_image', 'image_data' => $imageBase64]
                         ]
                     ]
                 ],
@@ -108,7 +107,7 @@ SYS;
             Log::info('🚀 Sending request to OpenAI', [
                 'endpoint' => $base . '/responses',
                 'model' => $model,
-                'image_length' => strlen($imageUrl),
+                'image_size' => strlen($imageBase64),
             ]);
 
             $resp = Http::withHeaders([
@@ -145,9 +144,7 @@ SYS;
             $parsed = json_decode($content, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::warning('⚠️ JSON parse failed', [
-                    'raw_content' => $content,
-                ]);
+                Log::warning('⚠️ JSON parse failed', ['raw_content' => $content]);
 
                 $parsed = [
                     'question' => '(Parse failed)',
