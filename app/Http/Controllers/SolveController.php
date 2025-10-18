@@ -15,7 +15,7 @@ class SolveController extends Controller
 
     public function solve(Request $request): JsonResponse
     {
-        // ✅ 支持 base64 或 file 上传
+        // ✅ 支持前端上传 base64 或文件
         $base64 = $request->input('image');
         $imageFile = $request->file('image');
 
@@ -26,7 +26,7 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ 统一转为 data:image/png;base64 格式
+        // ✅ 统一转成 data:image/png;base64 格式
         if ($base64 && str_starts_with($base64, 'data:image/')) {
             $dataUrl = $base64;
         } elseif ($imageFile) {
@@ -39,7 +39,7 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ MOCK 模式（测试用）
+        // ✅ MOCK 模式（本地测试用）
         if (env('MOCK', false)) {
             return response()->json([
                 'ok' => true,
