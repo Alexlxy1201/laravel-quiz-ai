@@ -164,7 +164,7 @@ SYS;
                 ];
             }
 
-            // ✅ 确保返回数据结构完整
+            
             $parsed = [
                 'question' => $parsed['question'] ?? '(No question extracted)',
                 'answer' => $parsed['answer'] ?? '(No answer provided)',
@@ -195,4 +195,5 @@ SYS;
             ], 500);
         }
     }
+    
 }
