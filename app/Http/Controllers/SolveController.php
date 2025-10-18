@@ -25,12 +25,11 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ 转为统一格式
-        if ($base64 && str_starts_with($base64, 'data:image/')) {
-            $dataUrl = $base64;
+        // 🧩 统一转成纯 base64（去掉 data:image/...;base64,）
+        if ($base64) {
+            $imageBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $base64);
         } elseif ($imageFile) {
-            $mime  = $imageFile->getMimeType() ?: 'image/png';
-            $dataUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imageFile->getRealPath()));
+            $imageBase64 = base64_encode(file_get_contents($imageFile->getRealPath()));
         } else {
             return response()->json([
                 'ok' => false,
@@ -38,7 +37,7 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ 本地 MOCK 模式（调试时可设 MOCK=1）
+        // ✅ MOCK 模式（测试用）
         if (env('MOCK', false)) {
             return response()->json([
                 'ok' => true,
@@ -62,30 +61,27 @@ class SolveController extends Controller
         if (!$apiKey) {
             return response()->json([
                 'ok' => false,
-                'error' => 'Missing OPENAI_API_KEY. Set it in Railway Variables or enable MOCK=1.'
+                'error' => 'OPENAI_API_KEY is missing in Railway Variables.'
             ], 500);
         }
 
         $system = <<<SYS
-You are a precise question-solving tutor. Given a photo of a question (math/science/general), do the following in English:
-1) Extract and rewrite the question text clearly as "question".
-2) Solve it and provide a concise "answer".
-3) Provide 3–7 step-by-step "reasoning" as an array of strings.
-4) List 3–6 "knowledge_points".
-Return a JSON object: question, answer, reasoning, knowledge_points.
+You are a precise question-solving tutor. Given a photo of a question (math/science/general), do the following:
+1) Extract the question clearly.
+2) Solve it and give the concise answer.
+3) Provide 3–7 reasoning steps as a string array.
+4) List 3–6 related knowledge points.
+Return pure JSON: question, answer, reasoning, knowledge_points.
 SYS;
 
         try {
-            // 🧩 去除 data:image/png;base64, 前缀
-            $imageBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl);
-
-            // ✅ 使用 Responses API（支持图像输入）
+            // ✅ 使用新版 Responses API
             $resp = Http::withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type'  => 'application/json',
             ])->withOptions([
-                'verify' => true, // Railway 环境支持 SSL
-                'timeout' => 30,
+                'verify' => true,
+                'timeout' => 45,
             ])->post($base . '/responses', [
                 'model' => $model,
                 'input' => [
@@ -96,7 +92,7 @@ SYS;
                     [
                         'role' => 'user',
                         'content' => [
-                            ['type' => 'input_text', 'text' => 'Solve this question from the photo and return the specified JSON.'],
+                            ['type' => 'input_text', 'text' => 'Solve this question and return JSON.'],
                             ['type' => 'input_image', 'image_data' => $imageBase64]
                         ]
                     ]
@@ -105,6 +101,7 @@ SYS;
                 'response_format' => ['type' => 'json_object']
             ]);
 
+            // 🔍 调试输出
             if (!$resp->ok()) {
                 return response()->json([
                     'ok' => false,
@@ -114,7 +111,7 @@ SYS;
                 ], 502);
             }
 
-
+            // ✅ 正常解析
             $json = $resp->json();
             $content = $json['output'][0]['content'][0]['text'] ?? '{}';
             $parsed = json_decode($content, true);
@@ -129,6 +126,7 @@ SYS;
             }
 
             return response()->json(['ok' => true, 'data' => $parsed]);
+
         } catch (\Throwable $e) {
             return response()->json([
                 'ok' => false,
