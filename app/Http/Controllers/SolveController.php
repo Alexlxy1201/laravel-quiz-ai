@@ -44,6 +44,24 @@ class SolveController extends Controller
             ], 400);
         }
 
+        // ✅ MOCK 模式（测试时可设 MOCK=1）
+        if (env('MOCK', false)) {
+            Log::info('🧪 MOCK mode active');
+            return response()->json([
+                'ok' => true,
+                'data' => [
+                    'question' => 'If 3x + 5 = 20, what is x?',
+                    'answer' => 'x = 5',
+                    'reasoning' => [
+                        'Subtract 5 from both sides: 3x = 15',
+                        'Divide both sides by 3: x = 5'
+                    ],
+                    'knowledge_points' => ['Linear equation', 'Inverse operations', 'Basic algebra']
+                ],
+                'mock' => true
+            ]);
+        }
+
         $apiKey = env('OPENAI_API_KEY');
         $model  = env('OPENAI_MODEL', 'gpt-4o-mini');
         $base   = rtrim(env('OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/');
@@ -56,7 +74,6 @@ class SolveController extends Controller
             ], 500);
         }
 
-        // ✅ System 指令
         $system = <<<SYS
 You are a precise question-solving tutor. Given a photo of a question (math/science/general), do the following:
 1) Extract the question clearly.
@@ -67,7 +84,9 @@ Return pure JSON: question, answer, reasoning, knowledge_points.
 SYS;
 
         try {
-            // 🧾 准备请求体
+            $start = microtime(true);
+
+            // 🧾 准备请求体（新版 API 格式）
             $payload = [
                 'model' => $model,
                 'input' => [
@@ -84,7 +103,8 @@ SYS;
                     ]
                 ],
                 'temperature' => 0.2,
-                'response_format' => ['type' => 'json_object']
+                // ✅ 使用新版字段 text.format 替代 response_format
+                'text' => ['format' => 'json']
             ];
 
             Log::info('🚀 Sending request to OpenAI', [
@@ -93,7 +113,6 @@ SYS;
                 'base64_length' => strlen($imageBase64),
             ]);
 
-            // ✅ 调用 OpenAI API
             $resp = Http::withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type'  => 'application/json',
@@ -102,10 +121,11 @@ SYS;
                 'timeout' => 45,
             ])->post($base . '/responses', $payload);
 
-            // 🔍 记录响应详情
+            $elapsed = round(microtime(true) - $start, 2);
             Log::info('📤 OpenAI response metadata', [
                 'status' => $resp->status(),
                 'ok' => $resp->ok(),
+                'elapsed_seconds' => $elapsed,
             ]);
 
             if (!$resp->ok()) {
@@ -123,7 +143,7 @@ SYS;
             }
 
             $json = $resp->json();
-            Log::info('✅ Raw OpenAI response', [
+            Log::info('✅ Raw OpenAI response keys', [
                 'keys' => array_keys($json),
             ]);
 
@@ -146,6 +166,7 @@ SYS;
             Log::info('✅ Parsed JSON successfully', [
                 'question' => $parsed['question'] ?? '(none)',
                 'answer' => $parsed['answer'] ?? '(none)',
+                'elapsed_seconds' => $elapsed
             ]);
 
             return response()->json([
