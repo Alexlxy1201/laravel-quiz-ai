@@ -15,7 +15,6 @@ class SolveController extends Controller
 
     public function solve(Request $request): JsonResponse
     {
-        // ✅ 支持前端上传 base64 或文件
         $base64 = $request->input('image');
         $imageFile = $request->file('image');
 
@@ -26,7 +25,6 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ 统一转成 data:image/png;base64 格式
         if ($base64 && str_starts_with($base64, 'data:image/')) {
             $dataUrl = $base64;
         } elseif ($imageFile) {
@@ -39,7 +37,6 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ MOCK 模式（本地测试用）
         if (env('MOCK', false)) {
             return response()->json([
                 'ok' => true,
@@ -63,7 +60,7 @@ class SolveController extends Controller
         if (!$apiKey) {
             return response()->json([
                 'ok' => false,
-                'error' => 'OPENAI_API_KEY is missing. Set it in Railway Variables or enable MOCK=1.'
+                'error' => 'OPENAI_API_KEY is missing. Set it in .env or enable MOCK=1.'
             ], 500);
         }
 
@@ -77,17 +74,27 @@ Return a JSON object: question, answer, reasoning, knowledge_points.
 SYS;
 
         try {
+            $imageBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl);
+
+            // ✅ 改用 /v1/responses 接口（新版，支持图像）
             $resp = Http::withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type'  => 'application/json',
-            ])->post($base . '/chat/completions', [
+            ])->withOptions(['verify' => false])
+              ->post($base . '/responses', [
                 'model' => $model,
-                'messages' => [
-                    ['role' => 'system', 'content' => $system],
-                    ['role' => 'user', 'content' => [
-                        ['type' => 'text', 'text' => 'Solve this question from the photo and return the specified JSON.'],
-                        ['type' => 'image_url', 'image_url' => ['url' => $dataUrl]]
-                    ]]
+                'input' => [
+                    [
+                        'role' => 'system',
+                        'content' => $system
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            ['type' => 'input_text', 'text' => 'Solve this question from the photo and return the specified JSON.'],
+                            ['type' => 'input_image', 'image_data' => $imageBase64]
+                        ]
+                    ]
                 ],
                 'temperature' => 0.2,
                 'response_format' => ['type' => 'json_object']
@@ -102,9 +109,9 @@ SYS;
             }
 
             $json = $resp->json();
-            $content = $json['choices'][0]['message']['content'] ?? '{}';
-
+            $content = $json['output'][0]['content'][0]['text'] ?? '{}';
             $parsed = json_decode($content, true);
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $parsed = [
                     'question' => '(Parse failed)',
@@ -114,10 +121,7 @@ SYS;
                 ];
             }
 
-            return response()->json([
-                'ok' => true,
-                'data' => $parsed
-            ]);
+            return response()->json(['ok' => true, 'data' => $parsed]);
         } catch (\Throwable $e) {
             return response()->json([
                 'ok' => false,
