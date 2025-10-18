@@ -31,11 +31,12 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ 转成纯 base64
+        // ✅ 生成完整的 data URL
         if ($base64 && str_starts_with($base64, 'data:image/')) {
-            $imageBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $base64);
+            $imageUrl = $base64;
         } elseif ($imageFile) {
-            $imageBase64 = base64_encode(file_get_contents($imageFile->getRealPath()));
+            $mime = $imageFile->getMimeType() ?: 'image/png';
+            $imageUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imageFile->getRealPath()));
         } else {
             return response()->json([
                 'ok' => false,
@@ -43,7 +44,7 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ MOCK 模式
+        // ✅ MOCK 模式（测试）
         if (env('MOCK', false)) {
             return response()->json([
                 'ok' => true,
@@ -84,7 +85,7 @@ SYS;
         try {
             $start = microtime(true);
 
-            // ✅ 最新正确 payload：input_image + image_data（base64）
+            // ✅ 正确 payload：input_image + image_url
             $payload = [
                 'model' => $model,
                 'input' => [
@@ -96,7 +97,7 @@ SYS;
                         'role' => 'user',
                         'content' => [
                             ['type' => 'input_text', 'text' => 'Solve this question and return JSON.'],
-                            ['type' => 'input_image', 'image_data' => $imageBase64]
+                            ['type' => 'input_image', 'image_url' => $imageUrl]
                         ]
                     ]
                 ],
@@ -107,7 +108,7 @@ SYS;
             Log::info('🚀 Sending request to OpenAI', [
                 'endpoint' => $base . '/responses',
                 'model' => $model,
-                'image_size' => strlen($imageBase64),
+                'image_size' => strlen($imageUrl),
             ]);
 
             $resp = Http::withHeaders([
@@ -145,7 +146,6 @@ SYS;
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Log::warning('⚠️ JSON parse failed', ['raw_content' => $content]);
-
                 $parsed = [
                     'question' => '(Parse failed)',
                     'answer' => $content,
