@@ -79,16 +79,16 @@ You are a precise question-solving tutor. Given a photo of a question (math/scie
 2) Solve it and give the concise answer.
 3) Provide 3–7 reasoning steps as a string array.
 4) List 3–6 related knowledge points.
-Return pure JSON: question, answer, reasoning, knowledge_points.
+Return pure JSON with this exact structure: {"question": "...", "answer": "...", "reasoning": ["step1", "step2", ...], "knowledge_points": ["point1", "point2", ...]}
 SYS;
 
         try {
             $start = microtime(true);
 
-            // ✅ 正确 payload：input_image + image_url
+            // ✅ 修复后的 payload：使用标准 Chat Completions API 格式
             $payload = [
                 'model' => $model,
-                'input' => [
+                'messages' => [
                     [
                         'role' => 'system',
                         'content' => $system
@@ -96,17 +96,25 @@ SYS;
                     [
                         'role' => 'user',
                         'content' => [
-                            ['type' => 'input_text', 'text' => 'Solve this question and return JSON.'],
-                            ['type' => 'input_image', 'image_url' => $imageUrl]
+                            [
+                                'type' => 'text',
+                                'text' => 'Solve this question and return JSON with the exact structure specified in the system prompt.'
+                            ],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => $imageUrl
+                                ]
+                            ]
                         ]
                     ]
                 ],
                 'temperature' => 0.2,
-                'text' => ['format' => 'json']
+                'response_format' => ['type' => 'json_object']
             ];
 
             Log::info('🚀 Sending request to OpenAI', [
-                'endpoint' => $base . '/responses',
+                'endpoint' => $base . '/chat/completions',
                 'model' => $model,
                 'image_size' => strlen($imageUrl),
             ]);
@@ -117,7 +125,7 @@ SYS;
             ])->withOptions([
                 'verify' => true,
                 'timeout' => 45,
-            ])->post($base . '/responses', $payload);
+            ])->post($base . '/chat/completions', $payload);
 
             $elapsed = round(microtime(true) - $start, 2);
             Log::info('📤 OpenAI response metadata', [
@@ -141,7 +149,9 @@ SYS;
             }
 
             $json = $resp->json();
-            $content = $json['output'][0]['content'][0]['text'] ?? '{}';
+            
+            // ✅ 修复后的响应解析：使用标准 Chat Completions 格式
+            $content = $json['choices'][0]['message']['content'] ?? '{}';
             $parsed = json_decode($content, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -154,9 +164,17 @@ SYS;
                 ];
             }
 
+            // ✅ 确保返回数据结构完整
+            $parsed = [
+                'question' => $parsed['question'] ?? '(No question extracted)',
+                'answer' => $parsed['answer'] ?? '(No answer provided)',
+                'reasoning' => $parsed['reasoning'] ?? [],
+                'knowledge_points' => $parsed['knowledge_points'] ?? []
+            ];
+
             Log::info('✅ Parsed JSON successfully', [
-                'question' => $parsed['question'] ?? '(none)',
-                'answer' => $parsed['answer'] ?? '(none)',
+                'question' => $parsed['question'],
+                'answer' => $parsed['answer'],
                 'elapsed_seconds' => $elapsed
             ]);
 
