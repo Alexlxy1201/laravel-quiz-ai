@@ -25,18 +25,18 @@ class SolveController extends Controller
         $imageFile = $request->file('image');
 
         if (!$base64 && !$imageFile) {
-            Log::warning('❌ No image received');
             return response()->json([
                 'ok' => false,
                 'error' => 'No image provided. Please upload or take a photo.'
             ], 400);
         }
 
-        // 🧩 转成纯 base64
-        if ($base64) {
-            $imageBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $base64);
+        // ✅ 生成 data URL（带前缀）
+        if ($base64 && str_starts_with($base64, 'data:image/')) {
+            $imageUrl = $base64;
         } elseif ($imageFile) {
-            $imageBase64 = base64_encode(file_get_contents($imageFile->getRealPath()));
+            $mime = $imageFile->getMimeType() ?: 'image/png';
+            $imageUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imageFile->getRealPath()));
         } else {
             return response()->json([
                 'ok' => false,
@@ -44,9 +44,8 @@ class SolveController extends Controller
             ], 400);
         }
 
-        // ✅ MOCK 模式（测试时可设 MOCK=1）
+        // ✅ MOCK 模式
         if (env('MOCK', false)) {
-            Log::info('🧪 MOCK mode active');
             return response()->json([
                 'ok' => true,
                 'data' => [
@@ -86,7 +85,7 @@ SYS;
         try {
             $start = microtime(true);
 
-            // 🧾 准备请求体（新版 API 格式）
+            // ✅ 新版请求体（image_url + text.format）
             $payload = [
                 'model' => $model,
                 'input' => [
@@ -98,19 +97,18 @@ SYS;
                         'role' => 'user',
                         'content' => [
                             ['type' => 'input_text', 'text' => 'Solve this question and return JSON.'],
-                            ['type' => 'input_image', 'image_data' => $imageBase64]
+                            ['type' => 'input_image_url', 'image_url' => ['url' => $imageUrl]]
                         ]
                     ]
                 ],
                 'temperature' => 0.2,
-                // ✅ 使用新版字段 text.format 替代 response_format
                 'text' => ['format' => 'json']
             ];
 
             Log::info('🚀 Sending request to OpenAI', [
                 'endpoint' => $base . '/responses',
                 'model' => $model,
-                'base64_length' => strlen($imageBase64),
+                'image_length' => strlen($imageUrl),
             ]);
 
             $resp = Http::withHeaders([
@@ -143,10 +141,6 @@ SYS;
             }
 
             $json = $resp->json();
-            Log::info('✅ Raw OpenAI response keys', [
-                'keys' => array_keys($json),
-            ]);
-
             $content = $json['output'][0]['content'][0]['text'] ?? '{}';
             $parsed = json_decode($content, true);
 
