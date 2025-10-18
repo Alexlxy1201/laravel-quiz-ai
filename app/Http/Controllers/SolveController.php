@@ -15,14 +15,31 @@ class SolveController extends Controller
 
     public function solve(Request $request): JsonResponse
     {
-        $request->validate([
-            'image' => 'required|image|max:10240' // 10MB
-        ]);
+        // ✅ 支持 base64 或 file 上传
+        $base64 = $request->input('image');
+        $imageFile = $request->file('image');
 
-        $image = $request->file('image');
-        $mime  = $image->getMimeType() ?: 'image/png';
-        $dataUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($image->getRealPath()));
+        if (!$base64 && !$imageFile) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'No image provided. Please upload or take a photo.'
+            ], 400);
+        }
 
+        // ✅ 统一转为 data:image/png;base64 格式
+        if ($base64 && str_starts_with($base64, 'data:image/')) {
+            $dataUrl = $base64;
+        } elseif ($imageFile) {
+            $mime  = $imageFile->getMimeType() ?: 'image/png';
+            $dataUrl = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imageFile->getRealPath()));
+        } else {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Invalid image format.'
+            ], 400);
+        }
+
+        // ✅ MOCK 模式（测试用）
         if (env('MOCK', false)) {
             return response()->json([
                 'ok' => true,
